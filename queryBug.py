@@ -69,8 +69,8 @@ class Triage:
      
     #login bugzilla
     def login_bugzilla(self):
-        username = 'lming'
-        password = 'Vlmm@666'
+        username = 'myusername'
+        password = 'mypassword'
      
         url = r'https://bugzilla.eng.vmware.com/index.cgi'
         headers = {
