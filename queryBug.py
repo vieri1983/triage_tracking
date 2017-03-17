@@ -264,7 +264,7 @@ class Triage:
             except Exception,e:
                 print "Exception :",e
 
-    f.close()
+        f.close()
 
     def updatePR(self, bugID):
         item = self.parse_bug(bugID)
