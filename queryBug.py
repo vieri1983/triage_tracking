@@ -14,6 +14,7 @@ import psycopg2
 import datetime
 import time
 from pyquery import PyQuery as pq
+import argparse
  
 __author__ = "Ming Li"
 __copyright__ = "Copyright 2017, Ming Li, VMWare"
@@ -69,8 +70,8 @@ class Triage:
      
     #login bugzilla
     def login_bugzilla(self):
-        username = 'myusername'
-        password = 'mypasswd'
+        username = 'xxxxxxxx'
+        password = 'xxxxxxxx'
      
         url = r'https://bugzilla.eng.vmware.com/index.cgi'
         headers = {
@@ -187,6 +188,7 @@ class Triage:
                 item["COMPONENT"] = line.split('component:')[1].strip()[1:-2]
         #fetch status
         item["STATUS"] = d('#bugStatus span').text() 
+        resolution = d('#bugResolution span').text()
         #fetch priority
         item["PRIORITY"] = d('#priority option:selected').text()
         #fetch severity
@@ -206,7 +208,7 @@ class Triage:
                 continue
 
         #check if bug was resolved for 14 days or longer
-        if item["STATUS"] in ["resolved","closed"]:
+        if item["STATUS"] in ["closed", "resolved"] and resolution not in ['wont fix', 'duplicate', 'not a bug']:
             out = d("td.added:contains('resolved')").parent().parent().parent().siblings('.bz_comment_head').text()
             match=re.search(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})',out)
             resolve_date = match.group(1).split()[0]
@@ -230,13 +232,18 @@ class Triage:
             except:
                 pass
  
+        print item
         return item 
-
 
     def insertPR(self, ID):
         '''
         Insert one PR into DB/table one time
         '''
+        #if bug_id already in DB, we just update it
+        if self.inDB(ID):
+            self.updatePR(ID)
+            return
+
         item = self.parse_bug(ID)
         if not item:
             print "Error occured while adding PR %s" % ID
@@ -267,6 +274,10 @@ class Triage:
         f.close()
 
     def updatePR(self, bugID):
+        #bugID should exist in DB in advance
+        if not self.inDB(bugID):
+            return
+
         item = self.parse_bug(bugID)
         if not item:
             print "Error occured while updating PR %s" % bugID
@@ -280,8 +291,8 @@ class Triage:
                 values.append(v)
 
 
-        #sqlCommand = "UPDATE %s SET %s where bug_id like '%s[%]'" % (self.tb, ', '.join("%s = %%s" % u for u in keys), bugID)
-        sqlCommand = "UPDATE %s SET %s where id=%s" % (self.tb, ', '.join("%s = %%s" % u for u in keys),404)
+        sqlCommand = "UPDATE %s SET %s where bug_id=%s" % (self.tb, ', '.join("%s = %%s" % u for u in keys), bugID)
+        #sqlCommand = "UPDATE %s SET %s where id=%s" % (self.tb, ', '.join("%s = %%s" % u for u in keys),404)
         self.cur.execute(sqlCommand, values)
         self.conn.commit()
         print "Update PR %s succeed!" % bugID
@@ -319,8 +330,24 @@ class Triage:
         #note: fetchall get a dict list, whose 0th is id in DB, 1th start is as item
         return self.cur.fetchall()
 
+    def inDB(self, ID):
+        '''
+        Return True if ID as bug_id exists in DB, False otherwise
+        '''
+        sqlCommand = "SELECT * FROM {tb} WHERE BUG_ID={bug_id};".format(
+        tb = self.tb,
+        bug_id = ID
+        )
+        self.cur.execute(sqlCommand)
+        if self.cur.fetchall() != []:
+            print 'in DB'
+            return True
+        else:
+            print 'Not in DB'
+            return False
+
     def deletePR(self, ID):
-        sqlCommand = "DELETE FROM {tb} WHERE BUG_ID like '{bug_id}%';".format(
+        sqlCommand = "DELETE FROM {tb} WHERE BUG_ID={bug_id};".format(
         tb = self.tb,
         bug_id = ID
         )
@@ -337,6 +364,7 @@ class Triage:
         then we should consider if add it in to DB or not. Before that, a bug was added in undetermined pool
         A bug has inherited kw 'triaged' from base bug, this is invalid. Because base bug should not add 'triaged' kw
         for each children. So we don't consider this situation. Every bug here should have been added 'triaged' in comments
+        But given that many team add 'triaged' to base bug, we check 'CheckinApproved' kw instead. I modified query too.
         Therefore, QA has 3 states: in platformTeam, not in, not assigned(''). owner has 2: in platformTeam, not in.
         If owner in, add it to DB because we triaged it, we should track it and remove from undetermined. 
         Actually we will focus only on our own bugs in future, so there will be few bugs that we triage but we are not QA.
@@ -362,7 +390,8 @@ class Triage:
  
         #Maybe not triaged yet
         try:
-            owner = d("td.added:contains('triaged')").parent().parent().parent().siblings('.bz_comment_head').text().split('|')[1].strip()
+            #owner = d("td.added:contains('triaged')").parent().parent().parent().siblings('.bz_comment_head').text().split('|')[1].strip()
+            owner = d("td.added:contains('CheckinApproved')").parent().parent().parent().siblings('.bz_comment_head').text().split('|')[1].strip()
         except IndexError:
             print 'bug %s not triaged yet, keep it in UD' % bugID
             return 0
@@ -446,6 +475,15 @@ class Triage:
 
                 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s","--saveDB", help="back up current DB", action="store_true")
+    parser.add_argument("-r","--updateDB", help="update current DB", action="store_true")
+    parser.add_argument("-m","--insertMultiPR", help="insert Multiple PR into DB, PR stored in ./id.txt", action="store_true")
+    parser.add_argument("-i","--insertPR", help="insert a PR into DB")
+    parser.add_argument("-u","--updatePR", help="update a PR in the DB")
+    args = parser.parse_args()
+ 
+
     triage = Triage()
     triage.setup_cookie()
  
@@ -456,18 +494,30 @@ def main():
         print e
         sys.exit()
 
- 
-    #We take below actions periodically
-    triage.updateUndetermined()
-    triage.updateDB()
-    triage.parse_querypage()
-    triage.gen_email_body(triage.table) 
-    triage.send_email()
-    triage.saveDB()
+    if args.saveDB:
+        print "let's back up DB now"
+        triage.saveDB()
+    elif args.updateDB:
+        print "let's update DB now"
+        triage.updateDB()
+    elif args.insertMultiPR:
+        print "let's insert PRs in id.txt" 
+        triage.insertMultiPR()
+    elif args.insertPR:
+        print "let's insert this PR" ,args.insertPR
+        triage.insertPR(args.insertPR)
+    elif args.updatePR:
+        print "let's update this PR" ,args.updatePR
+        triage.updatePR(args.updatePR)
+    else:
+        #We take below actions periodically
+        triage.updateUndetermined()
+        triage.updateDB()
+        triage.parse_querypage()
+        triage.gen_email_body(triage.table) 
+        triage.send_email()
+        triage.saveDB()
 
-#    triage.insertPR('1741839')
-#    triage.insertMultiPR()
-#    triage.updatePR("1741839")
 
     triage.closeConn()
 
