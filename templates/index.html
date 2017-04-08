@@ -1,56 +1,52 @@
-$def with (bugs, form, table)
-
-<!DOCTYPE html>
-<html>
-<base href="https://bugzilla.eng.vmware.com/" />
-<title>OnPrem QE Platform Triage Page</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://www.w3schools.com/lib/w3.css" rel="stylesheet" type="text/css">
-
+$def with (bugs, form, table, listNPR, listNPC)
 
 <div class="w3-container">
 <h2>Bugs to be triaged TODAY</h2>
  
-<table id="buglistSorter" class="w3-table-all w3-card-4"> 
+<table id="buglistSorter" class="w3-table-all w3-card-4 w3-hoverable"> 
 $:table
 </table>  
 </div>
 
 
 
-<div class="w3-container">
+<div class="w3-container mydiv">
 <h2>Bugs triage history</h2>
 <h3>$len(bugs) bugs found</h3>
 <table>
   <tr>
     <th rowspan="2" class="w3-teal">legend:</th>
-    <td class="w3-purple">Bugs that resolved more than 14 days not closed</td>
+    <td class="w3-blue-grey">Bugs that resolved more than 14 days not closed</td>
   </tr>
   <tr>
-    <td class="w3-orange">Bugs that triaged more than 7 days not resolved</td>
+    <td class="ming-red">Bugs that triaged more than 7 days not resolved</td>
   </tr>
 </table>
 
-<table id="buglistSorter" class="w3-table-all w3-card-4"> 
-      <tr class="w3-teal">
+<table id="bugdbtable" class="w3-table-all w3-card-4 w3-hoverable"> 
+    <thead>
+        <tr class="w3-teal">
         <th>ID</th>
         <th>Sev</th>
         <th>Pri</th>
         <th>Status</th>
         <th>Assignee</th>
         <th>QA</th>
-        <th>Product</th>
-        <th>Category</th>
-        <th>Component</th>
-        <th>Fix By</th>
-        <th>Summary</th>
-      </tr>
+        <th class="pccTD">Product</th>
+        <th class="pccTD">Category</th>
+        <th class="pccTD">Component</th>
+        <th class="pccTD">Fix By</th>
+        <th class="summaryTD">Summary</th>
+        </tr>
+  </thead>
 
+
+<tbody>
 $for bug in bugs:
     $if bug[5] == 'new' and bug[13]:
-        <tr class="w3-orange">
+        <tr class="w3-blue-grey">
     $elif bug[5] == 'resolved' and bug[12]:
-        <tr class="w3-purple">
+        <tr class="ming-red">
     $else:
         <tr>
     <td><a href="show_bug.cgi?id=$bug[1]">$bug[1]</a></td>
@@ -59,14 +55,14 @@ $for bug in bugs:
     <td>$bug[5]</td>
     <td>$bug[6]</td>
     <td>$bug[7]</td>
-    <td>$bug[8]</td>
-    <td>$bug[9]</td>
-    <td>$bug[10]</td>
-    <td>$bug[11]</td>
-    <td><a href="show_bug.cgi?id=$bug[1]" title=$bug[2]>$bug[2]</a></td>
+    <td class="pccTD">$bug[8]</td>
+    <td class="pccTD">$bug[9]</td>
+    <td class="pccTD">$bug[10]</td>
+    <td class="pccTD">$bug[11]</td>
+    <td class="summaryTD"><a href="show_bug.cgi?id=$bug[1]" title=$bug[2]>$bug[2]</a></td>
     </tr>
 
-
+</tbody>
 </table>
 
 
@@ -76,4 +72,87 @@ $:form.render()
 </form>
 
 </div>
-</html>
+
+<h2>Statistics</h2>
+<canvas id="nprBar" height="400"></canvas>
+<script>
+var ctx = document.getElementById("nprBar").getContext("2d");
+ctx.canvas.width  = window.innerWidth;
+var labelColor = "rgba(45, 57, 51, 0.8)"
+var nprBar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: $:listNPR[0],
+        datasets: [{
+            label: 'Number of PR Per Release',
+            backgroundColor: "rgba(148,202,255,0.8)",
+            borderWidth: 1,
+            hoverBackgroundColor: "rgba(232,105,90,0.8)",
+            hoverBorderColor: "orange",
+            data: $:listNPR[1],
+        }]
+    },
+    options: {
+        legend: {labels:{fontColor:labelColor, fontSize: 24}},
+        scales: {
+            yAxes: [{
+                ticks: {
+                    fontColor: labelColor,
+                    fontSize: 18,
+                    beginAtZero:true
+                }
+            }],
+            xAxes: [{
+                ticks: {
+                    fontColor: labelColor,
+                    fontSize: 12
+                }
+            }]
+
+        }
+    }
+});
+</script>
+
+<canvas id="npcBar" height="400"></canvas>
+<script>
+var ctx = document.getElementById("npcBar").getContext("2d");
+ctx.canvas.width  = window.innerWidth;
+var labelColor = "rgba(45, 57, 51, 0.8)"
+var npcBar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: $:listNPC[0],
+        datasets: [{
+            label: 'Number of PR Per Component',
+            backgroundColor: "rgba(215, 181, 227, 0.8)",
+            borderWidth: 1,
+            hoverBackgroundColor: "rgba(232,105,90,0.8)",
+            hoverBorderColor: "orange",
+            data: $:listNPC[1],
+        }]
+    },
+    options: {
+        legend: {labels:{fontColor:labelColor, fontSize: 24}},
+        scales: {
+            yAxes: [{
+                ticks: {
+                    fontColor: labelColor,
+                    fontSize: 18,
+                    beginAtZero:true
+                }
+            }],
+            xAxes: [{
+                ticks: {
+                    fontColor: labelColor,
+                    fontSize: 12
+                }
+            }]
+
+        }
+    }
+});
+</script>
+
+
+

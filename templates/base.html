@@ -1,10 +1,35 @@
 $def with (page)
-
+<!DOCTYPE html>
 <html>
 <head>
-    <title>OnPrem Platform Bug triage</title>
+<!--link has to be before base since link use relative path not based on 'base' -->
+    <link rel="stylesheet" type="text/css"  href="/static/css/w3.css"/>
+    <!--script type="text/javascript" src="/static/js/include.js"/></script-->
+    <script type="text/javascript" src="/static/js/Chart.js"/></script>
+    <base href="https://bugzilla.eng.vmware.com/" target="_blank"/>
+    <title>OnPrem QE Platform Triage Page</title>
+    <!--meta name="viewport" content="width=device-width, initial-scale=1"-->
+    <!--link href="https://www.w3schools.com/lib/w3.css" rel="stylesheet" type="text/css"-->
+    <style type="text/css"> 
+.ming-red,.w3-hover-ming-red:hover{ color:#000!important;background-color:#efc1ac!important }
+
+.pccTD {
+    width: auto;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.summaryTD {
+    width: auto;
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+    </style> 
 </head>
-<body>
+<body background-image: url("/static/image/bg.jpg");>
 
 $:page
 

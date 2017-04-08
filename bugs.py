@@ -6,6 +6,7 @@
 import web
 import datetime
 import time
+import json
 from queryBug import Triage
 
 
@@ -57,7 +58,9 @@ class Index:
         bugs = self.triage.selectPR()
         form = self.form()
         table = self.triage.table
-        return render.index(bugs, form, table)
+        listNPR = self.triage.getNPR()
+        listNPC = self.triage.getNPC()
+        return render.index(bugs, form, table, listNPR, listNPC)
 
     def POST(self):
         """ Add new entry """

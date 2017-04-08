@@ -330,6 +330,43 @@ class Triage:
         #note: fetchall get a dict list, whose 0th is id in DB, 1th start is as item
         return self.cur.fetchall()
 
+    def getNPR(self):
+        '''
+        get list of Number of PR Per Release
+        return listNPR, whose 0th item is a list contains release name, 1st item is a list contains corresponding PR number
+        '''
+        listNPR = []
+        listAxisX = []
+        listAxisY = []
+        sqlCommand = "select fixby, count(*) from tbugs group by fixby order by fixby;"
+        self.cur.execute(sqlCommand)
+        for each in self.cur.fetchall():
+            listAxisX.append(each[0])
+            listAxisY.append(int(each[1]))
+        listNPR.append(listAxisX)
+        listNPR.append(listAxisY)
+        return listNPR
+        
+
+    def getNPC(self):
+        '''
+        get list of Number of PR Per Component 
+        return listNPC, whose 0th item is a list contains product name, 1st item contains category name, 2nd item is a list contains corresponding PR number
+        '''
+        listNPC = []
+        listAxisX = []
+        listAxisY = []
+        sqlCommand = "select product, category, count(*) from tbugs group by product,category order by product;"
+        self.cur.execute(sqlCommand)
+        for each in self.cur.fetchall():
+            listAxisX.append(each[0]+":"+each[1])
+            listAxisY.append(int(each[2]))
+        listNPC.append(listAxisX)
+        listNPC.append(listAxisY)
+        return listNPC
+ 
+
+
     def inDB(self, ID):
         '''
         Return True if ID as bug_id exists in DB, False otherwise
@@ -340,10 +377,8 @@ class Triage:
         )
         self.cur.execute(sqlCommand)
         if self.cur.fetchall() != []:
-            print 'in DB'
             return True
         else:
-            print 'Not in DB'
             return False
 
     def deletePR(self, ID):
