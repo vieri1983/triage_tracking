@@ -25,7 +25,8 @@ __status__ = "Production"
 
 urls = (
     '/', 'Index',
-    '/del/(\d+)', 'Delete'
+    '/del/(\d+)', 'Delete',
+    '/pretriage', 'PreTriage'
 )
 
 
@@ -58,6 +59,7 @@ class Index:
         bugs = self.triage.selectPR()
         form = self.form()
         table = self.triage.table
+        actRel = self.triage.actRel
         listNPR = self.triage.getNPR()
         listNPC = self.triage.getNPC()
         listNPM = self.triage.getNPM()
@@ -82,6 +84,23 @@ class Delete:
         self.triage.deletePR(id)
         raise web.seeother('/')
 
+class PreTriage:
+    def __init__(self):
+        self.triage = Triage()
+        self.triage.setup_cookie()
+        try:
+            self.triage.login_bugzilla()
+        except Exception, e:
+            print 'fail to login bugzilla'
+            print e
+            sys.exit()
+     
+        self.triage.parse_pt_querypage()
+
+    def GET(self):
+        """ Show page """
+        pt_table = self.triage.pt_table
+        return render.pretriage(pt_table)
 
 app = web.application(urls, globals())
 

@@ -37,6 +37,8 @@ class Triage:
         self.platformTeam=['ljhuang', 'xiaotingm', 'lijin', 'btang', 'emilyj', 'lming', 'bhou', 'yancao', 'gnie']
 
         self.table = None
+        self.pt_table = None
+        self.actRel = None
         self.email_body = None
         #item={"BUG_ID":"","SUMMARY":"","SEVERITY":"","PRIORITY":"","STATUS":"","ASSIGNEE":"","QA":"","PRODUCT":"","CATEGORY":"","COMPONENT":"","FIXBY":"","RESOLVEDATELONG":False,"TRIAGEDATELONG":False,"INCOMINGDATE":""}
         
@@ -70,8 +72,8 @@ class Triage:
      
     #login bugzilla
     def login_bugzilla(self):
-        username = 'xxxxxxxx'
-        password = 'xxxxxxxx'
+        username = 'lming'
+        password = 'Vlmm@890'
      
         url = r'https://bugzilla.eng.vmware.com/index.cgi'
         headers = {
@@ -93,7 +95,7 @@ class Triage:
     
         response.close()
     
-    
+
     #parse the searched page and return the buglist table in html
     def parse_querypage(self):
         target_url='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=triaging&buglistsort=id,asc'
@@ -104,6 +106,7 @@ class Triage:
         if t == None:
             self.table = 'No new bugs need to be triaged!'
         else:
+            t = re.sub(r'(show_bug.cgi\?id=\d+)',r'https://bugzilla.eng.vmware.com/\1',t)
             self.table = t
 
         #add triaing bugs to undertermined pool
@@ -115,6 +118,20 @@ class Triage:
             if bugID not in udtm:
                 self.addUD(bugID)
 
+    #parse the pretriage searched page and return the buglist table in html
+    def parse_pt_querypage(self):
+        target_url='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=pretriage'
+        res = urllib2.urlopen(target_url) 
+        d = pq(res.read())
+        d('table#buglistSorter').find('tr.itemBar').attr('class','w3-teal')
+        t = d('table#buglistSorter').html()
+        if t == None:
+            self.pt_table = 'No new bugs need to be triaged!'
+        else:
+            t = re.sub(r'(show_bug.cgi\?id=\d+)',r'https://bugzilla.eng.vmware.com/\1',t)
+            self.pt_table = t
+
+ 
     
     def gen_email_body(self, table):
         header = '''
@@ -398,13 +415,6 @@ class Triage:
         listNPM.append(listAxisX)
         listNPM.append(listAxisY)
         return listNPM
- 
-
-
-
-
-
-
  
     def inDB(self, ID):
         '''
