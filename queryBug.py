@@ -38,7 +38,7 @@ class Triage:
 
         self.table = None
         self.email_body = None
-        #item={"BUG_ID":"","SUMMARY":"","SEVERITY":"","PRIORITY":"","STATUS":"","ASSIGNEE":"","QA":"","PRODUCT":"","CATEGORY":"","COMPONENT":"","FIXBY":"","RESOLVEDATELONG":False,"TRIAGEDATELONG":False}
+        #item={"BUG_ID":"","SUMMARY":"","SEVERITY":"","PRIORITY":"","STATUS":"","ASSIGNEE":"","QA":"","PRODUCT":"","CATEGORY":"","COMPONENT":"","FIXBY":"","RESOLVEDATELONG":False,"TRIAGEDATELONG":False,"INCOMINGDATE":""}
         
         #if undetermined pool does not exist, create it
         if not os.path.isfile(self.udfile):
@@ -173,7 +173,7 @@ class Triage:
             print "Invalid Bug ID",ID
             return False
         
-        item={"BUG_ID":"","SUMMARY":"","SEVERITY":"","PRIORITY":"","STATUS":"","ASSIGNEE":"","QA":"","PRODUCT":"","CATEGORY":"","COMPONENT":"","FIXBY":"","RESOLVEDATELONG":False,"TRIAGEDATELONG":False}
+        item={"BUG_ID":"","SUMMARY":"","SEVERITY":"","PRIORITY":"","STATUS":"","ASSIGNEE":"","QA":"","PRODUCT":"","CATEGORY":"","COMPONENT":"","FIXBY":"","RESOLVEDATELONG":False,"TRIAGEDATELONG":False,"INCOMINGDATE":""}
         item["BUG_ID"] = title.split(u'\u2013')[0].replace('Bug ','',1)  #"Bug 1506383"
         #fetch summary
         item["SUMMARY"] = d('#bugSummary input').attr('value')
@@ -221,6 +221,7 @@ class Triage:
 
                 
         #check if bug was triaged for 7 days or longer
+        triage_date = ''
         out = d("td.added:contains('triaged')").parent().parent().parent().siblings('.bz_comment_head').text()
         if out != '':
             match=re.search(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})',out)
@@ -231,6 +232,21 @@ class Triage:
                 item["TRIAGEDATELONG"] = (c-a > datetime.timedelta(7))
             except:
                 pass
+
+        #record incoming date. 1st try 'nominate' date, if no, try 'triaged' date, if no, set 'bug opened' date
+        incoming_date = ''
+        out = d("td.added:contains('nominate')").parent().parent().parent().siblings('.bz_comment_head').text()
+        if out != '':
+            match=re.search(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})',out)
+            incoming_date = match.group(1).split()[0]
+        elif triage_date != '': #nominated date is NULL, which means it inherited from parent
+            incoming_date = triage_date
+        else: # triage date also NULL, use the 1st comment's date 
+            out=d("div.bz_comment_head").eq(0).text()
+            match=re.search(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})',out)
+            incoming_date =  match.group(1).split()[0]
+        item["INCOMINGDATE"] = incoming_date
+                
  
         print item
         return item 
@@ -249,7 +265,6 @@ class Triage:
             print "Error occured while adding PR %s" % ID
             return
         
-        #self.cur.execute("INSERT INTO tBugs (BUG_ID, SUMMARY, SEVERITY, PRIORITY, STATUS, ASSIGNEE, QA, PRODUCT, CATEGORY, COMPONENT, FIXBY) VALUES (%s %s %s %s %s %s %s %s %s %s %s);", (self.id, self.summary, self.severity, self.pri, self.status, self.assignee, self.qa, self.product, self.category, self.component, self.fixby))
         keys = item.keys()
         values = [ item[k] for k in keys ]
         sqlCommand = "INSERT INTO {tb} ({keys}) VALUES ({placeholders});".format(
@@ -315,6 +330,7 @@ class Triage:
 
     def selectNonClosedPR(self):
         sqlCommand = "SELECT * FROM {tb} WHERE STATUS not like 'closed';".format(
+        #sqlCommand = "SELECT * FROM {tb};".format(
         tb = self.tb
         )
         self.cur.execute(sqlCommand)
@@ -366,7 +382,30 @@ class Triage:
         return listNPC
  
 
+    def getNPM(self):
+        '''
+        get list of Number of PR Per Month 
+        return listNPM, whose 0th item is a list contains recent 12 months' name, 1st item is a list contains corresponding incoming PR number
+        '''
+        listNPM = []
+        listAxisX = []
+        listAxisY = []
+        sqlCommand = "select to_char(incomingdate, 'YYYY-MM'),count(bug_id) from tbugs where incomingdate > (current_date - interval '12 months') group by to_char(incomingdate, 'YYYY-MM') order by to_char(incomingdate, 'YYYY-MM');"
+        self.cur.execute(sqlCommand)
+        for each in self.cur.fetchall():
+            listAxisX.append(each[0])
+            listAxisY.append(int(each[1]))
+        listNPM.append(listAxisX)
+        listNPM.append(listAxisY)
+        return listNPM
+ 
 
+
+
+
+
+
+ 
     def inDB(self, ID):
         '''
         Return True if ID as bug_id exists in DB, False otherwise

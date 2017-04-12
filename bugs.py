@@ -60,7 +60,8 @@ class Index:
         table = self.triage.table
         listNPR = self.triage.getNPR()
         listNPC = self.triage.getNPC()
-        return render.index(bugs, form, table, listNPR, listNPC)
+        listNPM = self.triage.getNPM()
+        return render.index(bugs, form, table, listNPR, listNPC, listNPM)
 
     def POST(self):
         """ Add new entry """
