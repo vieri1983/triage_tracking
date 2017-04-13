@@ -34,7 +34,7 @@ class Triage:
         self.bkfile="bk.txt"
         #keep undetermined bugs in local file incase we restart service and lose all the current ones, its content is like '1\n2\n3\n'
         self.udfile=os.path.join(os.getcwd(),'udtm.txt')
-        self.platformTeam=['ljhuang', 'xiaotingm', 'lijin', 'btang', 'emilyj', 'lming', 'bhou', 'yancao', 'gnie']
+        self.platformTeam=['ljhuang', 'Li Jun Huang', 'xiaotingm', 'Xiaoting (Shelley) Ma', 'lijin', 'Jin Li', 'btang', 'Bin Tang', 'emilyj', 'lming', 'Ming Li', 'bhou', 'Bei Hou', 'yancao', 'Yanhui Cao', 'gnie', 'Guoqiang Nie']
 
         self.table = None
         self.pt_table = None
@@ -72,8 +72,8 @@ class Triage:
      
     #login bugzilla
     def login_bugzilla(self):
-        username = 'xxxxxxxx'
-        password = 'xxxxxxxx'
+        username = 'lming'
+        password = 'Vlmm@890'
      
         url = r'https://bugzilla.eng.vmware.com/index.cgi'
         headers = {
@@ -146,6 +146,10 @@ class Triage:
     </head>
     <body>
     
+    <div>
+        <a href="http://10.117.173.254:8080/">Triage Home</a>
+    </div>
+
     <table id="buglistSorter"
              class="bz_buglist tablesorter" cellspacing="0"
              cellpadding="4" width="100%">
@@ -165,7 +169,7 @@ class Triage:
     def send_email(self):
         me = 'lming@mingrhel.com'
         to = 'lming@vmware.com'
-        cc = 'ljhuang@vmware.com'
+        cc = 'qe-ljhuang-all@vmware.com'
         #cc = 'lming@vmware.com'
         msg = MIMEMultipart('alternative')
         msg['Subject'] = "Daily Triage Bugs"
