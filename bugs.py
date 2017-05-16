@@ -26,6 +26,7 @@ __status__ = "Production"
 urls = (
     '/', 'Index',
     '/del/(\d+)', 'Delete',
+    '/favicon.ico','Icon',
     '/pretriage', 'PreTriage'
 )
 
@@ -33,6 +34,9 @@ urls = (
 ### Templates
 render = web.template.render('templates', base='base')
 
+class Icon:
+    def GET(self): 
+        raise web.seeother("/static/favicon.ico")
 
 class Index:
     def __init__(self):

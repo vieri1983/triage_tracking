@@ -2,7 +2,7 @@ $def with (bugs, form, table, listNPR, listNPC, listNPM)
 
 <div class="topnav">
   <a href="#triaging">Bugs today</a>
-  <a href="#triaged">Bugs triage history</a>
+  <a href="#triaged">Bug triage history</a>
   <a href="#statistics">Statistics</a>
   <a href="#useful">Useful links</a>
 </div>
@@ -18,7 +18,7 @@ $:table
 
 
 
-<div id="triaged" class="w3-container mydiv">
+<div id="triaged" class="w3-container">
 <h2>Bugs triage history</h2>
 <h3>$len(bugs) bugs found</h3>
 <table>
@@ -38,8 +38,8 @@ $:table
         <th>Sev</th>
         <th>Pri</th>
         <th>Status</th>
-        <th>Assignee</th>
-        <th>QA</th>
+        <th class="pccTD">Assignee</th>
+        <th class="pccTD">QA</th>
         <th class="pccTD">Product</th>
         <th class="pccTD">Category</th>
         <th class="pccTD">Component</th>
@@ -52,9 +52,9 @@ $:table
 <tbody>
 $for bug in bugs:
     $if bug[5] == 'new' and bug[13]:
-        <tr class="w3-blue-grey">
-    $elif bug[5] == 'resolved' and bug[12]:
         <tr class="ming-red">
+    $elif bug[5] == 'resolved' and bug[12]:
+        <tr class="w3-blue-grey">
     $else:
         <tr>
     <td><a href="https://bugzilla.eng.vmware.com/show_bug.cgi?id=$bug[1]">$bug[1]</a></td>

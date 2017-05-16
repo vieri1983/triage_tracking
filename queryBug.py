@@ -74,7 +74,7 @@ class Triage:
     def login_bugzilla(self):
         username = 'xxxxxxxx'
         password = 'xxxxxxxx'
-     
+
         url = r'https://bugzilla.eng.vmware.com/index.cgi'
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.99 Safari/537.36'
@@ -104,12 +104,13 @@ class Triage:
         d('table#buglistSorter').find('tr.itemBar').attr('class','w3-teal')
         t = d('table#buglistSorter').html()
         if t == None:
-            self.table = 'No new bugs need to be triaged!'
+            #self.table = 'No new bugs today!'
+            self.table = '<p style="font-size:200%;color:green;font-family:courier;">No new bugs today!</p>'
         else:
             t = re.sub(r'(show_bug.cgi\?id=\d+)',r'https://bugzilla.eng.vmware.com/\1',t)
             self.table = t
 
-        #add triaing bugs to undertermined pool
+        #add triaging bugs to undertermined pool
         print 'updating udtm!'
         udtm=self.getUDlist()
         for bug in d('table#buglistSorter').find('tr')[1:]:     #skip first item tr
@@ -120,16 +121,55 @@ class Triage:
 
     #parse the pretriage searched page and return the buglist table in html
     def parse_pt_querypage(self):
-        target_url='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=pretriage'
+        #target_url='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=pretriage'
+        target_url='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=earlyEngage&buglistsort=id,asc#buglistsort=comp mgr,asc'
         res = urllib2.urlopen(target_url) 
         d = pq(res.read())
-        d('table#buglistSorter').find('tr.itemBar').attr('class','w3-teal')
+
         t = d('table#buglistSorter').html()
         if t == None:
-            self.pt_table = 'No new bugs need to be triaged!'
-        else:
-            t = re.sub(r'(show_bug.cgi\?id=\d+)',r'https://bugzilla.eng.vmware.com/\1',t)
-            self.pt_table = t
+            #self.pt_table = 'No new bugs today!'
+            self.pt_table = '<p style="font-size:200%;color:yellow;font-family:courier;">No new bugs today!</p>'
+            return
+ 
+
+        d('table#buglistSorter').find('tr.itemBar').attr('class','w3-teal')
+
+
+        #add 'Info' column to the 1st of each row
+        tooltip_th = '''
+<th nowrap="nowrap">
+Info
+</th>
+'''
+        tooltip_td_head = '''
+<td class="tooltip">>>
+<span class="tooltiptext">
+'''
+        tooltip_td_tail = '''
+</span>
+</td>
+'''
+
+        d('table#buglistSorter').find('tr.w3-teal').prepend(tooltip_th)
+        for tr in d('table#buglistSorter').find('tbody tr'):                         
+            ID = pq(tr).find('td').eq(0).text()
+            tooltip_text = self.fetch_info(ID)
+            #tooltip_text = "Tooltip text"
+            tooltip_td = tooltip_td_head + tooltip_text + tooltip_td_tail
+            pq(tr).prepend(tooltip_td)
+
+
+        t = d('table#buglistSorter').html()
+        t = re.sub(r'(show_bug.cgi\?id=\d+)',r'https://bugzilla.eng.vmware.com/\1',t)
+
+        self.pt_table = t
+
+        
+    #fulfill the tooltip_text to show information to users
+    def fetch_info(self, ID):
+        tooltip_text = "Tooltip text for bug: " + ID
+        return tooltip_text
 
  
     
@@ -147,7 +187,7 @@ class Triage:
     <body>
     
     <div>
-        <a href="http://10.117.173.254:8080/">Triage Home</a>
+        <p style="font-size:200%;color:blue;font-family:courier;">Click <a href="http://10.117.173.254:8080/">here</a> to see more statistics in Triage Home</p>
     </div>
 
     <table id="buglistSorter"
@@ -160,8 +200,6 @@ class Triage:
     </body>
     </html>
     '''
-        #since the link is based on base url, we add it to make hyperlink in email work
-        table = re.sub(r'(show_bug.cgi\?id=\d+)',r'https://bugzilla.eng.vmware.com/\1',table)
         self.email_body = header + table + tail
     
 
@@ -569,6 +607,7 @@ def main():
     parser.add_argument("-m","--insertMultiPR", help="insert Multiple PR into DB, PR stored in ./id.txt", action="store_true")
     parser.add_argument("-i","--insertPR", help="insert a PR into DB")
     parser.add_argument("-u","--updatePR", help="update a PR in the DB")
+    parser.add_argument("-l","--dummyMail", help="send a dummy mail to debug email function", action="store_true")
     args = parser.parse_args()
  
 
@@ -597,6 +636,11 @@ def main():
     elif args.updatePR:
         print "let's update this PR" ,args.updatePR
         triage.updatePR(args.updatePR)
+    elif args.dummyMail:
+        print "let's only send a mail without other operation" 
+        triage.parse_querypage()
+        triage.gen_email_body(triage.table) 
+        triage.send_email()
     else:
         #We take below actions periodically
         triage.updateUndetermined()

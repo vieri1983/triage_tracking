@@ -12,17 +12,18 @@ $def with (page)
     <!--link href="https://www.w3schools.com/lib/w3.css" rel="stylesheet" type="text/css"-->
     <style type="text/css"> 
 .ming-red,.w3-hover-ming-red:hover{ color:#000!important;background-color:#efc1ac!important }
-.scrollTable { overflow-x: scroll; }
+
 .pccTD {
     width: auto;
-    max-width: 200px;
+    max-width: 170px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
 .summaryTD {
     width: auto;
-    max-width: 500px;
+    max-width: 400px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -55,25 +56,35 @@ $def with (page)
   color: black;
 }
 
-.myul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    width: 300px;
-    background-color: #f1f1f1;
+.tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
 }
 
-.mylia {
-    display: block;
-    color: #000;
-    padding: 8px 16px;
-    text-decoration: none;
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 1000px;
+    height: 1000px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    top: 100%;
+    left: 100%;
+    margin-left: 10px;
+    
+    /* Fade in tooltip - takes 1 second to go from 0% to 100% opac: */
+    opacity: 0;
+    transition: opacity 1s;
 }
 
-/* Change the link color on hover */
-.mylia:hover {
-    background-color: #555;
-    color: white;
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 0.3;
 }
     </style> 
 </head>
