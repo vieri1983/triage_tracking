@@ -34,8 +34,10 @@ class Triage:
         self.bkfile="bk.txt"
         #keep undetermined bugs in local file incase we restart service and lose all the current ones, its content is like '1\n2\n3\n'
         self.udfile=os.path.join(os.getcwd(),'udtm.txt')
-        self.platformTeam=['ljhuang', 'Li Jun Huang', 'xiaotingm', 'Xiaoting (Shelley) Ma', 'lijin', 'Jin Li', 'btang', 'Bin Tang', 'emilyj', 'lming', 'Ming Li', 'bhou', 'Bei Hou', 'yancao', 'Yanhui Cao', 'gnie', 'Guoqiang Nie']
-
+        self.team=['ljhuang', 'Li Jun Huang', 'xiaotingm', 'Xiaoting (Shelley) Ma', 'lijin', 'Jin Li', 'btang', 'Bin Tang', 'emilyj', 'lming', 'Ming Li', 'bhou', 'Bei Hou', 'yancao', 'Yanhui Cao', 'gnie', 'Guoqiang Nie']
+        self.queryLink='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=triaging&buglistsort=id,asc'
+        self.user='lming'
+        self.passwd='xxxxxxxx'
         self.table = None
         self.pt_table = None
         self.actRel = None
@@ -72,8 +74,8 @@ class Triage:
      
     #login bugzilla
     def login_bugzilla(self):
-        username = 'xxxxxxxx'
-        password = 'xxxxxxxx'
+        username = self.user
+        password = self.passwd
 
         url = r'https://bugzilla.eng.vmware.com/index.cgi'
         headers = {
@@ -98,7 +100,8 @@ class Triage:
 
     #parse the searched page and return the buglist table in html
     def parse_querypage(self):
-        target_url='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=triaging&buglistsort=id,asc'
+        #target_url='https://bugzilla.eng.vmware.com/buglist.cgi?cmdtype=runnamed&namedcmd=triaging&buglistsort=id,asc'
+        target_url=self.queryLink
         res = urllib2.urlopen(target_url) 
         d = pq(res.read())
         d('table#buglistSorter').find('tr.itemBar').attr('class','w3-teal')
@@ -214,7 +217,7 @@ Info
         msg['From'] = me
         msg['To'] = to
         msg['CC'] = cc
-        part = MIMEText(self.email_body, 'html')
+        part = MIMEText(self.email_body.encode('utf-8'), 'html')
         msg.attach(part)
         s = smtplib.SMTP('localhost')
         s.sendmail(me, to, msg.as_string())
@@ -294,7 +297,8 @@ Info
 
         #record incoming date. 1st try 'nominate' date, if no, try 'triaged' date, if no, set 'bug opened' date
         incoming_date = ''
-        out = d("td.added:contains('nominate')").parent().parent().parent().siblings('.bz_comment_head').text()
+        #out = d("td.added:contains('nominate')").parent().parent().parent().siblings('.bz_comment_head').text()
+        out = d("td.added:contains('CheckinApprovalRequested')").parent().parent().parent().siblings('.bz_comment_head').text()
         if out != '':
             match=re.search(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})',out)
             incoming_date = match.group(1).split()[0]
@@ -482,7 +486,7 @@ Info
         
 
     def inTeam(self, person):
-        return person in self.platformTeam
+        return person in self.team
 
     def parseUndetermined(self, bugID):
         '''
@@ -622,7 +626,7 @@ def main():
         sys.exit()
 
     if args.saveDB:
-        print "let's back up DB now"
+        print "let's back up DB to bk.txt now"
         triage.saveDB()
     elif args.updateDB:
         print "let's update DB now"
